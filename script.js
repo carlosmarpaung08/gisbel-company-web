@@ -16,28 +16,85 @@ window.addEventListener('scroll', () => {
 // ===========================
 const menuToggle = document.getElementById('menuToggle');
 const navLinks   = document.getElementById('navLinks');
+const navContainer = navLinks.parentElement; // original parent (nav-container)
 
-menuToggle.addEventListener('click', () => {
-  const isOpen = navLinks.classList.toggle('active');
-  menuToggle.classList.toggle('active');
-  document.body.style.overflow = isOpen ? 'hidden' : '';
+// Create backdrop overlay
+const backdrop = document.createElement('div');
+backdrop.className = 'nav-backdrop';
+document.body.appendChild(backdrop);
+
+// Create close button inside the drawer
+const drawerClose = document.createElement('button');
+drawerClose.className = 'drawer-close';
+drawerClose.setAttribute('aria-label', 'Close menu');
+drawerClose.innerHTML = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`;
+navLinks.insertBefore(drawerClose, navLinks.firstChild);
+
+// Move nav-links to body on mobile so it escapes header's stacking context
+const mobileBreakpoint = 968;
+let isMovedToBody = false;
+
+const moveNavForMobile = () => {
+  const isMobile = window.innerWidth <= mobileBreakpoint;
+  if (isMobile && !isMovedToBody) {
+    document.body.appendChild(navLinks);
+    isMovedToBody = true;
+  } else if (!isMobile && isMovedToBody) {
+    // Move back to original position (before .nav-cta)
+    const navCta = navContainer.querySelector('.nav-cta');
+    if (navCta) {
+      navContainer.insertBefore(navLinks, navCta);
+    } else {
+      navContainer.appendChild(navLinks);
+    }
+    isMovedToBody = false;
+    closeMenu();
+  }
+};
+
+moveNavForMobile();
+window.addEventListener('resize', moveNavForMobile);
+
+const openMenu = () => {
+  navLinks.classList.add('active');
+  menuToggle.classList.add('active');
+  backdrop.classList.add('active');
+  document.body.style.overflow = 'hidden';
+};
+
+const closeMenu = () => {
+  navLinks.classList.remove('active');
+  menuToggle.classList.remove('active');
+  backdrop.classList.remove('active');
+  document.body.style.overflow = '';
+};
+
+menuToggle.addEventListener('click', (e) => {
+  e.stopPropagation();
+  if (navLinks.classList.contains('active')) {
+    closeMenu();
+  } else {
+    openMenu();
+  }
 });
+
+// Close on backdrop click
+backdrop.addEventListener('click', closeMenu);
+
+// Close on drawer close button click
+drawerClose.addEventListener('click', closeMenu);
 
 // Close on nav link click
 document.querySelectorAll('.nav-link').forEach(link => {
   link.addEventListener('click', () => {
-    navLinks.classList.remove('active');
-    menuToggle.classList.remove('active');
-    document.body.style.overflow = '';
+    closeMenu();
   });
 });
 
 // Close on outside click
 document.addEventListener('click', e => {
-  if (!navLinks.contains(e.target) && !menuToggle.contains(e.target)) {
-    navLinks.classList.remove('active');
-    menuToggle.classList.remove('active');
-    document.body.style.overflow = '';
+  if (!navLinks.contains(e.target) && !menuToggle.contains(e.target) && !backdrop.contains(e.target)) {
+    closeMenu();
   }
 });
 
